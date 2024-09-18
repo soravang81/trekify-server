@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String      @id @default(uuid())
+  gid               String?
+  name              String
+  email             String      @unique
+  image             String      @default("https://firebasestorage.googleapis.com/v0/b/chatapp-4deee.appspot.com/o/ProfilePics%2Fdefault-pic.jpg?alt=media&token=53c51d35-079f-4e2e-addc-c6b40cfe8630")
+  password          String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt @default(now())
+  posts             Post[]
+  communities       CommunityMember[]
+}
+
+model Community {
+  id                String      @id @default(uuid())
+  name              String
+  description       String
+  image             String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt @default(now())
+  posts             Post[]
+  members           CommunityMember[]
+}
+
+model CommunityMember {
+  id                String      @id @default(uuid())
+  userId            String
+  communityId       String
+  role              String      @default("member")
+  joinedAt          DateTime    @default(now())
+  user              User        @relation(fields: [userId], references: [id])
+  community         Community   @relation(fields: [communityId], references: [id])
+}
+
+model Post {
+  id                String      @id @default(uuid())
+  content           String
+  userId            String
+  communityId       String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt @default(now())
+  user              User        @relation(fields: [userId] , references: [id])
+  community         Community   @relation(fields: [communityId] , references: [id])
+}
