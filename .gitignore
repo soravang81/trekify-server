@@ -1,4 +1,4 @@
 .env
 node_modules
-src/lib/firebaseadmin.json
-src/lib/firebase.ts
+# src/lib/firebaseadmin.json
+# src/lib/firebase.ts
