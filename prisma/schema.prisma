@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id                String      @id @default(uuid())
-  gid               String?
+  gid               String?     @unique
   name              String
   email             String      @unique
   image             String      @default("https://firebasestorage.googleapis.com/v0/b/chatapp-4deee.appspot.com/o/ProfilePics%2Fdefault-pic.jpg?alt=media&token=53c51d35-079f-4e2e-addc-c6b40cfe8630")
@@ -18,7 +18,10 @@ model User {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt @default(now())
   posts             Post[]
-  communities       CommunityMember[]
+  joinedCommunities CommunityMember[]
+  adminOf           CommunityAdmin[]
+  comments          Comment[]
+  postLikes         PostLike[]
 }
 
 model Community {
@@ -26,29 +29,57 @@ model Community {
   name              String
   description       String
   image             String?
+  tags              String[]
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt @default(now())
   posts             Post[]
   members           CommunityMember[]
+  admin             CommunityAdmin?
 }
 
 model CommunityMember {
   id                String      @id @default(uuid())
-  userId            String
-  communityId       String
-  role              String      @default("member")
+  userId            String      @unique
+  communityId       String      @unique
   joinedAt          DateTime    @default(now())
   user              User        @relation(fields: [userId], references: [id])
   community         Community   @relation(fields: [communityId], references: [id])
 }
-
+model CommunityAdmin {
+  id                String      @id @default(uuid())
+  userId            String      @unique
+  communityId       String      @unique
+  joinedAt          DateTime    @default(now())
+  user              User        @relation(fields: [userId], references: [id])
+  community         Community   @relation(fields: [communityId], references: [id])
+}
 model Post {
   id                String      @id @default(uuid())
-  content           String
+  text              String
+  image             String?
   userId            String
   communityId       String
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt @default(now())
-  user              User        @relation(fields: [userId] , references: [id])
+  postBy            User        @relation(fields: [userId] , references: [id])
   community         Community   @relation(fields: [communityId] , references: [id])
+  likes             PostLike[]
+  comments          Comment[]
+}
+model Comment {
+  id                String      @id @default(uuid())
+  text              String
+  userId            String
+  postId            String
+  createdAt         DateTime    @default(now())
+  commentedBy       User        @relation(fields: [userId] , references: [id])
+  post              Post        @relation(fields: [postId] , references: [id])
+}
+model PostLike {
+  id                String      @id @default(uuid())
+  userId            String
+  postId            String
+  createdAt         DateTime    @default(now())
+  likedBy           User        @relation(fields: [userId] , references: [id])
+  post              Post        @relation(fields: [postId] , references: [id])
 }

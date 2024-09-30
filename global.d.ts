@@ -1,16 +1,22 @@
 import { Express } from 'express-serve-static-core';
 import 'express-session';
+import { Request } from 'express';
 
 declare module 'express-serve-static-core' {
   interface ParamsDictionary {
-    id: string;
+    userId?: string | number;
   }
 }
 declare module 'express-session' {
   interface SessionData {
-    user? : {
-      id?: string,
-      email? : string
+    user?: { id: number; email: string };
+  }
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string | number;
     }
   }
 }

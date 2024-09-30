@@ -1,115 +1,115 @@
 import { Request, Response, Router } from "express";
 import { adminAuth } from "../lib/firebase";
 import prisma from "../db/db";
+import { createJwtToken } from '../middleware/authmiddleware';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 const auth = Router();
 
 auth.post('/signin-with-google', async (req: Request, res: Response) => {
   const { idToken } = req.body;
-  console.log(idToken)
+  
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     const uid = decodedToken.uid;
 
     console.log('User ID:', uid);
 
-    // create user in the database , also if exists get userid and save in session
     try {
-      const user = await prisma.user.findFirst({ where: { gid : uid } });
-      if(user){
-        (req.session as any).user = { id : user.id , email : user.email};
-        res.send({ message: 'User signed in successfully', id : user.id });
-      } else {
-        const user = await prisma.user.create({
-          data : {
-            name : decodedToken.name,
-            email : decodedToken.email as string,
-            gid : uid
-          }
-        });
-        (req.session as any).user = { id : user.id , email : user.email};
-        await req.session.save();
-        res.send({ message: 'User signed in successfully', id : user.id });
-      }
-    } catch(error) {
-      console.error('Error creating user:', error);
+      const user = await prisma.user.upsert({
+        where: { gid: uid },
+        update: {},
+        create: {
+          name: decodedToken.name || '',
+          email: decodedToken.email as string,
+          gid: uid
+        }
+      });
+
+      const token = createJwtToken(user.id);
+      console.log("token----------->", token)
+
+      res.send({ message: 'User signed in successfully', id: user.id, token: token , email : user.email, name : user.name, image : user.image});
+    } catch (error) {
+      console.error('Error creating/updating user:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   } catch (error) {
     console.error('Error verifying ID token:', error);
     res.status(401).json({ error: 'Invalid ID token' });
   }
 });
-auth.post("/signup", async (req : Request, res) => {
-  const { email, password , name} = req.body;
+
+auth.post("/signup", async (req: Request, res: Response) => {
+  const { email, password, name } = req.body;
   try {
     const user = await prisma.user.create({
-      data : {
+      data: {
         name,
         email,
         password
       },
-      select : {
-        id : true,
-        email : true
+      select: {
+        id: true,
+        email: true
       }
     });
-    if(user){
-      (req.session as any).user = { 
-        id : user?.id , 
-        email : user?.email
-      };
-      req.session.save((err) => {
-      if (err) {
-        console.error('Failed to save session:', err);
-        return res.status(500).send('Internal Server Error');
-      }
-        console.error('Session saved and user logged in');
-      });
-      console.log((req.session as any).user)
-      res.status(200).json({ 
-        success : true,
+
+    if (user) {
+      const token = createJwtToken(user.id);
+
+      res.status(200).json({
+        success: true,
         user,
-        message: "User created successfully" 
+        token,
+        message: "User created successfully"
       });
     } else {
-      res.status(401).json({ error: "Invalid credentials !" });
+      res.status(401).json({ error: "Invalid credentials!" });
     }
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ error: "Failed to create user" });
   }
-})
-auth.post("/login", async (req, res) => {
+});
+
+auth.post("/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  console.log(email, password)
+  console.log(email, password);
   try {
     const user = await prisma.user.findFirst({
-      where : {
+      where: {
         email,
         password
       },
-      select : {
-        id : true,
-        email : true
+      select: {
+        id: true,
+        email: true
       }
     });
-    if(user){
-      (req.session as any).user = { id : user?.id , email : user?.email};
-      await req.session.save();
-      console.log((req.session as any))
-      res.status(200).json({ 
-        success : true,
+
+    if (user) {
+      const token = createJwtToken(user.id);
+
+      res.status(200).json({
+        success: true,
         user,
-        message: "Login successfully" 
+        token,
+        message: "Login successful"
       });
     } else {
-      res.status(401).json({ error: "Invalid credentials !" });
+      res.status(401).json({ error: "Invalid credentials!" });
     }
-
   } catch (error) {
-    console.error("Error creating user:", error);
-    res.status(500).json({ error: "Failed to create user" });
+    console.error("Error logging in user:", error);
+    res.status(500).json({ error: "Failed to log in" });
   }
-})
+});
 
-export default auth
+auth.post("/logout", (req: Request, res: Response) => {
+  // No need to clear cookies, just send a success response
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+export default auth;

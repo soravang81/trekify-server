@@ -1,25 +1,25 @@
-import { Request , Response , NextFunction } from 'express';
-import { adminAuth } from '../lib/firebase';
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
-export const verifyAuth = async (req : Request, res : Response, next : NextFunction) => {
-  const idToken = req.headers.authorization?.split('Bearer ')[1];
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+export const createJwtToken = (userId: string): string => {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '1d' });
+};
+
+export const verifyToken = (req: Request | any, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
 
   try {
-    console.log((req.session as any))
-    if (!idToken && !(req.session as any).user) {
-      console.error('No token and no session provided');
-      return res.status(401).json({ error: 'No token and no session provided' });
-    } else if (!idToken) {
-      console.log("verified from session");
-      next();
-    } else {
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
-      req.user = decodedToken; 
-      console.log("verified");
-      next(); 
-    }
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    req.userId = decoded.userId;
+    next();
   } catch (error) {
-    console.error('Error verifying ID token:', error);
-    return res.status(401).json({ error: 'Invalid ID token' });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 };
