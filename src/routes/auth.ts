@@ -29,6 +29,7 @@ auth.post('/signin-with-google', async (req: Request, res: Response) => {
 
       const token = createJwtToken(user.id);
       console.log("token----------->", token)
+      console.error("user----------->", user)
 
       res.send({ message: 'User signed in successfully', id: user.id, token: token , email : user.email, name : user.name, image : user.image});
     } catch (error) {

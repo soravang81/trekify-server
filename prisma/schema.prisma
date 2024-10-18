@@ -22,6 +22,15 @@ model User {
   adminOf           CommunityAdmin[]
   comments          Comment[]
   postLikes         PostLike[]
+  guideProfile      GuideDetails?
+  guideBookings     GuideBookings[]
+  qnaQuestions      QnAQuestions[]
+  qnaAnswers        QnAAnswers[]
+  travelBuddies     TravelBuddy[]
+  sentRequests     BuddyRequest[] @relation("SentRequests")
+  receivedRequests BuddyRequest[] @relation("ReceivedRequests")
+  buddies          Buddy[]        @relation("UserBuddies")
+  buddyOf          Buddy[]        @relation("BuddyUsers")
 }
 
 model Community {
@@ -35,24 +44,28 @@ model Community {
   posts             Post[]
   members           CommunityMember[]
   admin             CommunityAdmin?
+  qnaQuestions      QnAQuestions[]
+  qnaAnswers        QnAAnswers[]
 }
 
 model CommunityMember {
   id                String      @id @default(uuid())
-  userId            String      @unique
-  communityId       String      @unique
+  userId            String      
+  communityId       String      
   joinedAt          DateTime    @default(now())
   user              User        @relation(fields: [userId], references: [id])
   community         Community   @relation(fields: [communityId], references: [id])
 }
+
 model CommunityAdmin {
   id                String      @id @default(uuid())
-  userId            String      @unique
+  userId            String      
   communityId       String      @unique
   joinedAt          DateTime    @default(now())
   user              User        @relation(fields: [userId], references: [id])
   community         Community   @relation(fields: [communityId], references: [id])
 }
+
 model Post {
   id                String      @id @default(uuid())
   text              String
@@ -66,6 +79,7 @@ model Post {
   likes             PostLike[]
   comments          Comment[]
 }
+
 model Comment {
   id                String      @id @default(uuid())
   text              String
@@ -75,11 +89,121 @@ model Comment {
   commentedBy       User        @relation(fields: [userId] , references: [id])
   post              Post        @relation(fields: [postId] , references: [id])
 }
+
 model PostLike {
   id                String      @id @default(uuid())
   userId            String
-  postId            String
+  postId            String      
   createdAt         DateTime    @default(now())
   likedBy           User        @relation(fields: [userId] , references: [id])
   post              Post        @relation(fields: [postId] , references: [id])
+}
+
+model GuideDetails {
+  id                String      @id @default(uuid())
+  userId            String      @unique
+  name              String
+  adharNo           String
+  pincode           Int
+  address           String
+  languages         String[]    
+  experience        Int
+  certifications    GuideCertificates[]
+  bookings          GuideBookings[]
+  user              User        @relation(fields: [userId] , references: [id])
+}
+
+model GuideCertificates {
+  id                String      @id @default(uuid())
+  guideId           String
+  url               String
+  guide             GuideDetails @relation(fields: [guideId] , references: [id])
+}
+
+model GuideBookings {
+  id                String      @id @default(uuid())
+  guideId           String
+  userId            String
+  createdAt         DateTime    @default(now())
+  guide             GuideDetails @relation(fields: [guideId] , references: [id])
+  user              User        @relation(fields: [userId] , references: [id])
+}
+
+model QnAQuestions {
+  id                String      @id @default(uuid())
+  question          String
+  userId            String
+  communityId       String
+  tags              String[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt @default(now())
+  answers           QnAAnswers[]
+  user              User        @relation(fields: [userId] , references: [id])
+  community         Community   @relation(fields: [communityId] , references: [id])
+}
+
+model QnAAnswers {
+  id                String      @id @default(uuid())
+  questionId        String
+  communityId       String
+  userId            String
+  answer            String
+  upvotes           Int         @default(0)
+  downvotes         Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt @default(now())
+  question          QnAQuestions @relation(fields: [questionId] , references: [id])
+  user              User        @relation(fields: [userId] , references: [id])
+  community         Community   @relation(fields: [communityId] , references: [id])
+}
+
+model TravelBuddy {
+  id            String   @id @default(uuid())
+  userId        String
+  destination   String
+  gender        String[]
+  budget        Int
+  travelStyle   String[]
+  bio           String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  sentRequests  TravelBuddyRequest[] @relation("SentRequests")
+  receivedRequests TravelBuddyRequest[] @relation("ReceivedRequests")
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model BuddyRequest {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  sender     User     @relation("SentRequests", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedRequests", fields: [receiverId], references: [id])
+}
+
+model Buddy {
+  id        String   @id @default(uuid())
+  userId    String
+  buddyId   String
+  createdAt DateTime @default(now())
+  user      User     @relation("UserBuddies", fields: [userId], references: [id])
+  buddy     User     @relation("BuddyUsers", fields: [buddyId], references: [id])
+
+  @@unique([userId, buddyId])
+}
+
+model TravelBuddyRequest {
+  id         String     @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     String     @default("pending")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  sender     TravelBuddy @relation("SentRequests", fields: [senderId], references: [id])
+  receiver   TravelBuddy @relation("ReceivedRequests", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
 }

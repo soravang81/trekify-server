@@ -5,7 +5,8 @@ import community from "./api/community";
 import { Router } from 'express';
 import { verifyToken } from '../middleware/authmiddleware';
 import posts from "./api/posts";
-
+import qna from "./api/qna";
+import buddy from "./api/buddy";
 const api = Router();
 
 api.use(express.json())
@@ -13,6 +14,8 @@ api.use(express.json())
 api.use("/user", user)
 api.use("/community", community)
 api.use("/posts", posts)
+api.use("/qna", qna)
+api.use("/buddy", buddy)
 
 api.get('/protected', verifyToken, (req: Request | any, res: Response) => {
   if (req.userId) {
