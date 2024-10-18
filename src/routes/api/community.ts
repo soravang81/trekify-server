@@ -23,6 +23,36 @@ community.get("/all" , async (req : Request | any, res) => {
     }
 })
 
+community.post("/my" , async (req : Request | any, res) => {
+    try {
+        const { id } = req.body
+        const communities = await prisma.user.findUnique({
+            where : {
+                id
+            },
+            select : {
+                joinedCommunities : {
+                    select : {
+                        community : {
+                            include : {
+                                members : true
+                            }
+                        },
+                    }
+                },
+            }
+        })
+        const mycommunities = communities?.joinedCommunities.map(com =>  com.community)
+        res.json({
+            success : true,
+            communities : mycommunities
+        })
+    } catch (e) {
+        console.error(e)
+        res.status(500).json({ success: false, error: "An error occurred while fetching communities" });
+    }
+})
+
 community.get("/:id" , async (req : Request | any, res) => {
     try {
         const community = await prisma.community.findFirst({
